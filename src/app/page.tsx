@@ -2,7 +2,26 @@ import { headers } from 'next/headers';
 
 export default async function Home() {
   const headersList = await headers();
-  const headersArray = Array.from(headersList.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const rawHeaders = Object.fromEntries(headersList.entries());
+  
+  console.log('Raw header data:', rawHeaders);
+  
+  const sensitivePatterns = ['bearer', 'authorization', 'token', 'signature'];
+  
+  const shouldRedact = (key: string, value: string) => {
+    const keyLower = key.toLowerCase();
+    const valueLower = value.toLowerCase();
+    return sensitivePatterns.some(pattern => 
+      keyLower.includes(pattern) || valueLower.includes(pattern)
+    );
+  };
+  
+  const headersArray = Array.from(headersList.entries())
+    .map(([name, value]) => [
+      name, 
+      shouldRedact(name, value) ? '[REDACTED]' : value
+    ])
+    .sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <div className="font-sans min-h-screen p-8">
